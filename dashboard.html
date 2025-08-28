@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatsApp Business API - Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .status-bar {
+            background: #f8f9fa;
+            padding: 20px;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .status {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .status-icon {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+        }
+
+        .status-icon.online {
+            background: #25D366;
+        }
+
+        .status-icon.offline {
+            background: #dc3545;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0;
+            min-height: 600px;
+        }
+
+        .messages-panel {
+            border-right: 1px solid #dee2e6;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .send-panel {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-header {
+            background: #f8f9fa;
+            padding: 20px;
+            border-bottom: 1px solid #dee2e6;
+            font-weight: bold;
+            color: #495057;
+        }
+
+        .messages-container {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            max-height: 400px;
+        }
+
+        .message {
+            background: #e3f2fd;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 15px;
+            border-left: 4px solid #2196f3;
+        }
+
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .message-content {
+            font-size: 1em;
+            color: #333;
+            line-height: 1.4;
+        }
+
+        .send-form {
+            padding: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #495057;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #dee2e6;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #25D366;
+            box-shadow: 0 0 0 3px rgba(37, 211, 102, 0.1);
+        }
+
+        textarea.form-control {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            width: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(37, 211, 102, 0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .alert {
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 10px;
+            font-weight: bold;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .no-messages {
+            text-align: center;
+            color: #6c757d;
+            font-style: italic;
+            padding: 40px 20px;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .messages-panel {
+                border-right: none;
+                border-bottom: 1px solid #dee2e6;
+            }
+            
+            .status {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
+
+        .refresh-btn {
+            background: #007bff;
+            padding: 8px 16px;
+            font-size: 14px;
+            margin-left: 10px;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #25D366;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📱 WhatsApp Business API</h1>
+            <p>Dashboard de Mensajes y Envío</p>
+        </div>
+
+        <div class="status-bar">
+            <div class="status">
+                <div class="status-item">
+                    <div class="status-icon" id="statusIcon"></div>
+                    <span>Estado: <strong id="statusText">Verificando...</strong></span>
+                </div>
+                <div class="status-item">
+                    <span>🆔 Phone ID: <strong id="phoneId">Cargando...</strong></span>
+                </div>
+                <div class="status-item">
+                    <span>🔑 Token: <strong id="tokenStatus">Verificando...</strong></span>
+                </div>
+                <div class="status-item">
+                    <span>📊 Mensajes: <strong id="messageCount">0</strong></span>
+                    <button class="btn refresh-btn" onclick="loadMessages()">🔄 Actualizar</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="messages-panel">
+                <div class="panel-header">
+                    📥 Mensajes Recibidos
+                </div>
+                <div class="messages-container" id="messagesContainer">
+                    <div class="no-messages">
+                        No hay mensajes recibidos aún.<br>
+                        Los mensajes aparecerán automáticamente cuando lleguen al webhook.
+                    </div>
+                </div>
+            </div>
+
+            <div class="send-panel">
+                <div class="panel-header">
+                    📤 Enviar Mensaje
+                </div>
+                <div class="send-form">
+                    <!-- Selector de tipo de mensaje -->
+                    <div class="form-group">
+                        <label for="messageType">📋 Tipo de Mensaje</label>
+                        <select id="messageType" class="form-control" onchange="toggleMessageType()">
+                            <option value="text">💬 Mensaje de Texto</option>
+                            <option value="template">📧 Plantilla</option>
+                        </select>
+                    </div>
+
+                    <form id="messageForm">
+                        <div class="form-group">
+                            <label for="phoneNumber">📞 Número de Teléfono (con código internacional)</label>
+                            <input 
+                                type="tel" 
+                                id="phoneNumber" 
+                                class="form-control" 
+                                placeholder="+54934263115888"
+                                required
+                            >
+                            <small style="color: #6c757d; font-size: 12px;">
+                                Formato: +549 + código de área sin 0 + número
+                            </small>
+                        </div>
+
+                        <!-- Campos para mensaje de texto -->
+                        <div id="textFields">
+                            <div class="form-group">
+                                <label for="message">💬 Mensaje</label>
+                                <textarea 
+                                    id="message" 
+                                    class="form-control" 
+                                    placeholder="Escribe tu mensaje aquí..."
+                                    required
+                                ></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Campos para plantillas -->
+                        <div id="templateFields" style="display: none;">
+                            <div class="form-group">
+                                <label for="templateSelect">📧 Seleccionar Plantilla</label>
+                                <select id="templateSelect" class="form-control" onchange="loadTemplateInfo()">
+                                    <option value="">Selecciona una plantilla...</option>
+                                    <!-- Las opciones se cargan dinámicamente desde la API -->
+                                </select>
+                            </div>
+
+                            <div id="templateInfo" style="display: none;">
+                                <div class="form-group">
+                                    <label>📝 Vista Previa</label>
+                                    <div id="templatePreview" style="background: #f8f9fa; padding: 15px; border-radius: 8px; font-style: italic; color: #666;">
+                                    </div>
+                                </div>
+
+                                <div id="templateParams" style="display: none;">
+                                    <label>🔧 Parámetros de la Plantilla</label>
+                                    <div id="parametersList"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn" id="sendBtn">
+                            📤 Enviar Mensaje
+                        </button>
+                    </form>
+
+                    <div id="sendResult"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Variables globales
+        let messages = [];
+        let templates = {};
+        const API_BASE = 'https://whatsapp-business-api-wexa.onrender.com';
+
+        // Verificar estado del servidor al cargar
+        window.onload = function() {
+            checkStatus();
+            loadMessages();
+            loadTemplates();
+            // Actualizar cada 30 segundos
+            setInterval(checkStatus, 30000);
+            // Actualizar mensajes cada 10 segundos
+            setInterval(loadMessages, 10000);
+        };
+
+        async function loadTemplates() {
+            try {
+                const response = await fetch(`${API_BASE}/templates`);
+                const data = await response.json();
+                
+                templates = {};
+                const templateSelect = document.getElementById('templateSelect');
+                
+                // Limpiar opciones existentes (excepto la primera)
+                templateSelect.innerHTML = '<option value="">Selecciona una plantilla...</option>';
+                
+                // Agregar plantillas dinámicamente
+                data.templates.forEach(template => {
+                    templates[template.name] = template;
+                    
+                    // Crear opción en el selector
+                    const option = document.createElement('option');
+                    option.value = template.name;
+                    option.textContent = template.display_name;
+                    templateSelect.appendChild(option);
+                });
+                
+                console.log('✅ Plantillas cargadas:', Object.keys(templates));
+                
+            } catch (error) {
+                console.error('Error cargando plantillas:', error);
+            }
+        }
+
+        function toggleMessageType() {
+            const messageType = document.getElementById('messageType').value;
+            const textFields = document.getElementById('textFields');
+            const templateFields = document.getElementById('templateFields');
+            
+            if (messageType === 'template') {
+                textFields.style.display = 'none';
+                templateFields.style.display = 'block';
+                document.getElementById('message').required = false;
+            } else {
+                textFields.style.display = 'block';
+                templateFields.style.display = 'none';
+                document.getElementById('templateInfo').style.display = 'none';
+                document.getElementById('message').required = true;
+            }
+        }
+
+        function loadTemplateInfo() {
+            const templateName = document.getElementById('templateSelect').value;
+            const templateInfo = document.getElementById('templateInfo');
+            const templatePreview = document.getElementById('templatePreview');
+            const templateParams = document.getElementById('templateParams');
+            const parametersList = document.getElementById('parametersList');
+            
+            if (!templateName) {
+                templateInfo.style.display = 'none';
+                return;
+            }
+            
+            const template = templates[templateName];
+            if (!template) return;
+            
+            // Mostrar vista previa
+            templatePreview.textContent = template.example;
+            templateInfo.style.display = 'block';
+            
+            // Mostrar parámetros si los tiene
+            if (template.parameters && template.parameters.length > 0) {
+                templateParams.style.display = 'block';
+                
+                parametersList.innerHTML = template.parameters.map((param, index) => `
+                    <div class="form-group">
+                        <label for="param_${index}">${param.replace('_', ' ').toUpperCase()}</label>
+                        <input 
+                            type="text" 
+                            id="param_${index}" 
+                            class="form-control" 
+                            placeholder="Ingresa ${param.replace('_', ' ')}"
+                            data-param-name="${param}"
+                        >
+                    </div>
+                `).join('');
+            } else {
+                templateParams.style.display = 'none';
+            }
+        }
+
+        async function checkStatus() {
+            try {
+                const response = await fetch(`${API_BASE}/test-config`);
+                const data = await response.json();
+                
+                document.getElementById('statusIcon').className = 'status-icon online';
+                document.getElementById('statusText').textContent = 'Online';
+                document.getElementById('phoneId').textContent = data.phone_number_id;
+                document.getElementById('tokenStatus').textContent = data.token_ok ? 'Válido' : 'Inválido';
+                
+            } catch (error) {
+                document.getElementById('statusIcon').className = 'status-icon offline';
+                document.getElementById('statusText').textContent = 'Offline';
+                document.getElementById('phoneId').textContent = 'N/A';
+                document.getElementById('tokenStatus').textContent = 'Error';
+            }
+        }
+
+        async function loadMessages() {
+            try {
+                const response = await fetch(`${API_BASE}/api/messages`);
+                const data = await response.json();
+                
+                messages = data.messages || [];
+                updateMessageCount();
+                renderMessages();
+                
+            } catch (error) {
+                console.error('Error cargando mensajes:', error);
+            }
+        }
+
+        // Enviar mensaje
+        document.getElementById('messageForm').onsubmit = async function(e) {
+            e.preventDefault();
+            
+            const phoneNumber = document.getElementById('phoneNumber').value;
+            const messageType = document.getElementById('messageType').value;
+            const sendBtn = document.getElementById('sendBtn');
+            const resultDiv = document.getElementById('sendResult');
+            
+            // Validar formato del número
+            if (!phoneNumber.startsWith('+')) {
+                showResult('Error: El número debe empezar con + (código internacional)', 'error');
+                return;
+            }
+            
+            let payload = {
+                to: phoneNumber,
+                type: messageType
+            };
+            
+            if (messageType === 'template') {
+                const templateName = document.getElementById('templateSelect').value;
+                if (!templateName) {
+                    showResult('Error: Selecciona una plantilla', 'error');
+                    return;
+                }
+                
+                payload.template_name = templateName;
+                payload.template_language = 'es';
+                
+                // Recopilar parámetros si los hay
+                const template = templates[templateName];
+                if (template && template.parameters && template.parameters.length > 0) {
+                    const parameters = [];
+                    for (let i = 0; i < template.parameters.length; i++) {
+                        const paramInput = document.getElementById(`param_${i}`);
+                        if (paramInput && paramInput.value.trim()) {
+                            parameters.push(paramInput.value.trim());
+                        } else {
+                            showResult(`Error: Complete el parámetro ${template.parameters[i]}`, 'error');
+                            return;
+                        }
+                    }
+                    payload.template_parameters = parameters;
+                }
+            } else {
+                const message = document.getElementById('message').value;
+                if (!message.trim()) {
+                    showResult('Error: Escribe un mensaje', 'error');
+                    return;
+                }
+                payload.message = message;
+            }
+            
+            // Deshabilitar botón y mostrar loading
+            sendBtn.disabled = true;
+            sendBtn.innerHTML = '<div class="loading"></div> Enviando...';
+            resultDiv.innerHTML = '';
+            
+            try {
+                const response = await fetch(`${API_BASE}/send-message`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(payload)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    const messageTypeText = messageType === 'template' ? 'Plantilla' : 'Mensaje';
+                    showResult(`✅ ${messageTypeText} enviado correctamente a ${phoneNumber}`, 'success');
+                    
+                    // Limpiar formulario
+                    if (messageType === 'text') {
+                        document.getElementById('message').value = '';
+                    } else {
+                        document.getElementById('templateSelect').value = '';
+                        document.getElementById('templateInfo').style.display = 'none';
+                    }
+                    
+                    // Actualizar mensajes después de enviar
+                    setTimeout(loadMessages, 2000);
+                    
+                } else {
+                    showResult(`❌ Error: ${result.error || 'Error desconocido'}`, 'error');
+                    if (result.details) {
+                        console.error('Detalles del error:', result.details);
+                    }
+                }
+                
+            } catch (error) {
+                showResult(`❌ Error de conexión: ${error.message}`, 'error');
+                console.error('Error:', error);
+            }
+            
+            // Restaurar botón
+            sendBtn.disabled = false;
+            sendBtn.innerHTML = '📤 Enviar Mensaje';
+        };
+
+        function showResult(message, type) {
+            const resultDiv = document.getElementById('sendResult');
+            resultDiv.innerHTML = `<div class="alert alert-${type === 'success' ? 'success' : 'error'}">${message}</div>`;
+            
+            // Auto-ocultar después de 5 segundos
+            setTimeout(() => {
+                resultDiv.innerHTML = '';
+            }, 5000);
+        }
+
+        function updateMessageCount() {
+            document.getElementById('messageCount').textContent = messages.length;
+        }
+
+        function renderMessages() {
+            const container = document.getElementById('messagesContainer');
+            
+            if (messages.length === 0) {
+                container.innerHTML = `
+                    <div class="no-messages">
+                        No hay mensajes recibidos aún.<br>
+                        Los mensajes aparecerán automáticamente cuando lleguen al webhook.
+                    </div>
+                `;
+                return;
+            }
+            
+            const messagesHtml = messages.map(msg => `
+                <div class="message">
+                    <div class="message-header">
+                        <span><strong>📥 De: ${msg.from || 'Desconocido'}</strong></span>
+                        <span>${msg.time}</span>
+                    </div>
+                    <div class="message-content">
+                        ${msg.content || 'Contenido no disponible'}
+                    </div>
+                </div>
+            `).join('');
+            
+            container.innerHTML = messagesHtml;
+        }
+    </script>
+</body>
+</html>
