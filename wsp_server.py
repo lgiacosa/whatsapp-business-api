@@ -26,13 +26,13 @@ received_messages = []
 
 # Validar que TODAS las variables de entorno estén configuradas
 missing_vars = []
-if not ACCESS_TOKEN:
+if not ACCESS_TOKEN or ACCESS_TOKEN.strip() == '':
     print("❌ ERROR: ACCESS_TOKEN no está configurado en las variables de entorno")
     missing_vars.append('ACCESS_TOKEN')
-if not VERIFY_TOKEN:
+if not VERIFY_TOKEN or VERIFY_TOKEN.strip() == '':
     print("❌ ERROR: VERIFY_TOKEN no está configurado en las variables de entorno")
     missing_vars.append('VERIFY_TOKEN')
-if not PHONE_NUMBER_ID:
+if not PHONE_NUMBER_ID or PHONE_NUMBER_ID.strip() == '':
     print("❌ ERROR: PHONE_NUMBER_ID no está configurado en las variables de entorno")
     missing_vars.append('PHONE_NUMBER_ID')
 
@@ -412,6 +412,40 @@ def test_send():
             
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+@app.route("/test-config", methods=["GET"])
+def test_config():
+    """
+    Endpoint para verificar la configuración de variables de entorno
+    """
+    try:
+        # Leer variables directamente desde os.environ
+        access_token = os.environ.get('ACCESS_TOKEN', '')
+        verify_token = os.environ.get('VERIFY_TOKEN', '')
+        phone_id = os.environ.get('PHONE_NUMBER_ID', '')
+        
+        return jsonify({
+            "phone_number_id": phone_id,
+            "business_account_id": BUSINESS_ACCOUNT_ID,
+            "token_ok": len(access_token) > 50,
+            "verify_token_ok": len(verify_token) > 10,
+            "ready": len(access_token) > 50 and len(verify_token) > 10 and len(phone_id) > 5,
+            "debug": {
+                "access_token_length": len(access_token),
+                "verify_token_length": len(verify_token),
+                "phone_id_length": len(phone_id),
+                "variables_in_globals": {
+                    "ACCESS_TOKEN": len(ACCESS_TOKEN) if ACCESS_TOKEN else 0,
+                    "VERIFY_TOKEN": len(VERIFY_TOKEN) if VERIFY_TOKEN else 0,
+                    "PHONE_NUMBER_ID": len(PHONE_NUMBER_ID) if PHONE_NUMBER_ID else 0
+                }
+            }
+        })
+    except Exception as e:
+        return jsonify({
+            "error": "Error verificando configuración",
+            "details": str(e)
+        }), 500
 
 @app.route("/templates", methods=["GET"])
 def get_templates():
