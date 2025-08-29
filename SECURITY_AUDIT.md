@@ -7,8 +7,10 @@
 #### 1. ✅ Tokens de Acceso
 - **wsp_server.py**: Utiliza correctamente `os.environ.get('ACCESS_TOKEN')` sin valor por defecto
 - **wsp_server.py**: Utiliza correctamente `os.environ.get('VERIFY_TOKEN')` sin valor por defecto
-- **whatsapp_server.py**: ✅ CORREGIDO - Ahora usa variables de entorno exclusivamente
+- **wsp_server.py**: Utiliza correctamente `os.environ.get('PHONE_NUMBER_ID')` sin valor por defecto
+- **whatsapp_server.py**: ✅ CORREGIDO - Ahora usa variables de entorno exclusivamente SIN valores por defecto
 - **Sin tokens hardcodeados**: No se encontraron tokens reales en el código fuente
+- **🔒 MÁXIMA SEGURIDAD**: Ninguna variable tiene valores por defecto hardcodeados
 
 #### 2. ✅ Archivos Problemáticos Eliminados
 - **✅ ELIMINADO**: `from flask import Flask, request, jsonif.py` - contenía tokens hardcodeados
@@ -23,8 +25,10 @@
 #### 4. ✅ Mejores Prácticas Implementadas
 - Uso de variables de entorno para información sensible
 - Validación de configuración al inicio del servidor
-- Sin valores por defecto para tokens en producción
+- **🔒 CERO valores por defecto para datos sensibles**
+- **🚨 El servidor NO INICIA si faltan variables críticas**
 - Mensajes de error informativos para configuración faltante
+- Validación estricta de todas las variables obligatorias
 
 ### Archivos Verificados como Seguros
 - `wsp_server.py` - Archivo principal del servidor ✅
@@ -52,5 +56,9 @@
 
 ## Próximos Pasos Recomendados
 1. ✅ Configurar las variables de entorno en Render.com si no están configuradas
+   - � **ACCESS_TOKEN**: OBLIGATORIO - Token de WhatsApp Business API
+   - � **VERIFY_TOKEN**: OBLIGATORIO - Token de verificación del webhook  
+   - � **PHONE_NUMBER_ID**: OBLIGATORIO - ID del número de WhatsApp (ej: 629824623553106)
+   - 🚨 **SIN ESTAS VARIABLES EL SERVIDOR NO INICIARÁ**
 2. Realizar pruebas de funcionalidad del webhook y envío de mensajes
 3. Usar `wsp_server.py` como archivo principal (más completo y actualizado)

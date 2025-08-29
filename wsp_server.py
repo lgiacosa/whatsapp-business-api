@@ -13,7 +13,7 @@ VERIFY_TOKEN = os.environ.get('VERIFY_TOKEN')
 ACCESS_TOKEN = os.environ.get('ACCESS_TOKEN')
 
 # ID del número de teléfono de WhatsApp Business
-PHONE_NUMBER_ID = os.environ.get('PHONE_NUMBER_ID', "629824623553106")
+PHONE_NUMBER_ID = os.environ.get('PHONE_NUMBER_ID')
 
 # ID de la cuenta de WhatsApp Business  
 BUSINESS_ACCOUNT_ID = "715070248001249"
@@ -24,13 +24,26 @@ WHATSAPP_API_URL = f"https://graph.facebook.com/v18.0/{PHONE_NUMBER_ID}/messages
 # Lista para almacenar mensajes (en producción usar base de datos)
 received_messages = []
 
-# Validar que las variables de entorno estén configuradas
+# Validar que TODAS las variables de entorno estén configuradas
+missing_vars = []
 if not ACCESS_TOKEN:
     print("❌ ERROR: ACCESS_TOKEN no está configurado en las variables de entorno")
+    missing_vars.append('ACCESS_TOKEN')
 if not VERIFY_TOKEN:
     print("❌ ERROR: VERIFY_TOKEN no está configurado en las variables de entorno")
+    missing_vars.append('VERIFY_TOKEN')
 if not PHONE_NUMBER_ID:
     print("❌ ERROR: PHONE_NUMBER_ID no está configurado en las variables de entorno")
+    missing_vars.append('PHONE_NUMBER_ID')
+
+# Evitar que el servidor inicie si faltan variables críticas
+if missing_vars:
+    print(f"\n🚨 FALLO CRÍTICO: Faltan {len(missing_vars)} variables de entorno obligatorias")
+    print("💡 Configura estas variables en Render.com → Environment:")
+    for var in missing_vars:
+        print(f"   - {var}")
+    print("\n⚠️  El servidor NO PUEDE INICIAR sin estas configuraciones")
+    exit(1)
 
 @app.route("/webhook", methods=["GET", "POST"])
 def webhook():
@@ -145,11 +158,20 @@ def send_message_endpoint():
         if message_type == "template":
             # Envío de plantilla
             template_name = data.get("template_name")
-            template_language = data.get("template_language", "es")
             template_parameters = data.get("template_parameters", [])
             
             if not template_name:
                 return jsonify({"error": "Campo 'template_name' requerido para plantillas"}), 400
+            
+            # Mapeo correcto de idiomas por plantilla (SOLO PLANTILLAS REALES)
+            template_languages = {
+                "hello_world": "en_US",
+                "otp": "es",
+                "otp_transacciones": "es", 
+                "tarjeta_credito": "es"
+            }
+            
+            template_language = template_languages.get(template_name, "es")
             
             result = send_template(to, template_name, template_language, template_parameters)
         else:
@@ -406,12 +428,28 @@ def get_templates():
             "example": "Welcome and congratulations!! This message demonstrates your ability to send a WhatsApp message notification from the Cloud API, hosted by Meta."
         },
         {
+            "name": "otp",
+            "display_name": "Código OTP",
+            "description": "Código de verificación de un solo uso",
+            "language": "es",
+            "parameters": ["codigo_otp"],
+            "example": "Tu código de verificación es: 123456"
+        },
+        {
             "name": "tarjeta_credito",
             "display_name": "Recordatorio Tarjeta de Crédito",
             "description": "Recordatorio de pago de tarjeta",
             "language": "es",
             "parameters": ["nombre_tarjeta", "ultimos_digitos", "fecha_vencimiento"],
             "example": "Recordatorio: El pago de tu tarjeta CS Mutual Credit Plus que termina en 1234 está programado para el 22 de marzo de 2024. Gracias."
+        },
+        {
+            "name": "otp_transacciones",
+            "display_name": "Código OTP para Transacciones",
+            "description": "Envío de código de verificación para transacciones",
+            "language": "es",
+            "parameters": ["codigo_otp"],
+            "example": "Use el código *123456* para autorizar su transacción. Por tu seguridad, no compartas este código."
         }
         # otp_transacciones comentada hasta que sea aprobada por Meta
         # {
@@ -442,11 +480,20 @@ def send_template_endpoint():
         
         to = data.get("to")
         template_name = data.get("template_name")
-        template_language = data.get("template_language", "es")
         template_parameters = data.get("template_parameters", [])
         
         if not to or not template_name:
             return jsonify({"error": "Campos 'to' y 'template_name' requeridos"}), 400
+        
+        # Mapeo correcto de idiomas por plantilla (SOLO PLANTILLAS REALES)
+        template_languages = {
+            "hello_world": "en_US",
+            "otp": "es",
+            "otp_transacciones": "es", 
+            "tarjeta_credito": "es"
+        }
+        
+        template_language = template_languages.get(template_name, "es")
         
         result = send_template(to, template_name, template_language, template_parameters)
         

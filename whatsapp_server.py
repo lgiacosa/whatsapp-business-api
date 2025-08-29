@@ -13,23 +13,36 @@ VERIFY_TOKEN = os.environ.get('VERIFY_TOKEN')
 ACCESS_TOKEN = os.environ.get('ACCESS_TOKEN')
 
 # ID del número de teléfono de WhatsApp Business - DESDE VARIABLES DE ENTORNO
-PHONE_NUMBER_ID = os.environ.get('PHONE_NUMBER_ID', "629824623553106")
+PHONE_NUMBER_ID = os.environ.get('PHONE_NUMBER_ID')
 
 # ID de la cuenta de WhatsApp Business  
 BUSINESS_ACCOUNT_ID = "715070248001249"
 
-# Validar que las variables de entorno estén configuradas
+# Validar que TODAS las variables de entorno estén configuradas
+missing_vars = []
 if not ACCESS_TOKEN:
     print("❌ ERROR: ACCESS_TOKEN no está configurado en las variables de entorno")
     print("💡 Configura ACCESS_TOKEN en Render.com → Environment")
+    missing_vars.append('ACCESS_TOKEN')
     
 if not VERIFY_TOKEN:
     print("❌ ERROR: VERIFY_TOKEN no está configurado en las variables de entorno")
     print("💡 Configura VERIFY_TOKEN en Render.com → Environment")
+    missing_vars.append('VERIFY_TOKEN')
     
 if not PHONE_NUMBER_ID:
     print("❌ ERROR: PHONE_NUMBER_ID no está configurado en las variables de entorno")
     print("💡 Configura PHONE_NUMBER_ID en Render.com → Environment")
+    missing_vars.append('PHONE_NUMBER_ID')
+
+# Evitar que el servidor inicie si faltan variables críticas
+if missing_vars:
+    print(f"\n🚨 FALLO CRÍTICO: Faltan {len(missing_vars)} variables de entorno obligatorias")
+    print("💡 Configura estas variables en Render.com → Environment:")
+    for var in missing_vars:
+        print(f"   - {var}")
+    print("\n⚠️  El servidor NO PUEDE INICIAR sin estas configuraciones")
+    exit(1)
 
 # URL base de la API de WhatsApp Business (construida después de validar variables)
 WHATSAPP_API_URL = f"https://graph.facebook.com/v18.0/{PHONE_NUMBER_ID}/messages"
