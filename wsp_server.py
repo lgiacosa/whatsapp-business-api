@@ -389,11 +389,34 @@ def get_messages():
 
 @app.route("/test-config", methods=["GET"])
 def test_config():
+    """
+    Endpoint para verificar la configuración de variables de entorno
+    """
+    # Leer variables directamente desde os.environ para debugging
+    access_token_env = os.environ.get('ACCESS_TOKEN', '')
+    verify_token_env = os.environ.get('VERIFY_TOKEN', '')
+    phone_id_env = os.environ.get('PHONE_NUMBER_ID', '')
+    
     return jsonify({
-        "phone_number_id": PHONE_NUMBER_ID,
+        "phone_number_id": phone_id_env,
         "business_account_id": BUSINESS_ACCOUNT_ID,
-        "token_ok": len(ACCESS_TOKEN) > 50,
-        "ready": True
+        "token_ok": len(access_token_env) > 50,
+        "verify_token_ok": len(verify_token_env) > 10,
+        "ready": len(access_token_env) > 50 and len(verify_token_env) > 10 and len(phone_id_env) > 5,
+        "debug": {
+            "env_vars": {
+                "ACCESS_TOKEN_length": len(access_token_env),
+                "VERIFY_TOKEN_length": len(verify_token_env),
+                "PHONE_NUMBER_ID_length": len(phone_id_env),
+                "PHONE_NUMBER_ID_value": phone_id_env  # Para debugging
+            },
+            "global_vars": {
+                "ACCESS_TOKEN_length": len(ACCESS_TOKEN) if ACCESS_TOKEN else 0,
+                "VERIFY_TOKEN_length": len(VERIFY_TOKEN) if VERIFY_TOKEN else 0,
+                "PHONE_NUMBER_ID_length": len(PHONE_NUMBER_ID) if PHONE_NUMBER_ID else 0,
+                "PHONE_NUMBER_ID_value": PHONE_NUMBER_ID  # Para debugging
+            }
+        }
     })
 
 @app.route("/test-send", methods=["POST"])
@@ -412,40 +435,6 @@ def test_send():
             
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
-@app.route("/test-config", methods=["GET"])
-def test_config():
-    """
-    Endpoint para verificar la configuración de variables de entorno
-    """
-    try:
-        # Leer variables directamente desde os.environ
-        access_token = os.environ.get('ACCESS_TOKEN', '')
-        verify_token = os.environ.get('VERIFY_TOKEN', '')
-        phone_id = os.environ.get('PHONE_NUMBER_ID', '')
-        
-        return jsonify({
-            "phone_number_id": phone_id,
-            "business_account_id": BUSINESS_ACCOUNT_ID,
-            "token_ok": len(access_token) > 50,
-            "verify_token_ok": len(verify_token) > 10,
-            "ready": len(access_token) > 50 and len(verify_token) > 10 and len(phone_id) > 5,
-            "debug": {
-                "access_token_length": len(access_token),
-                "verify_token_length": len(verify_token),
-                "phone_id_length": len(phone_id),
-                "variables_in_globals": {
-                    "ACCESS_TOKEN": len(ACCESS_TOKEN) if ACCESS_TOKEN else 0,
-                    "VERIFY_TOKEN": len(VERIFY_TOKEN) if VERIFY_TOKEN else 0,
-                    "PHONE_NUMBER_ID": len(PHONE_NUMBER_ID) if PHONE_NUMBER_ID else 0
-                }
-            }
-        })
-    except Exception as e:
-        return jsonify({
-            "error": "Error verificando configuración",
-            "details": str(e)
-        }), 500
 
 @app.route("/templates", methods=["GET"])
 def get_templates():
