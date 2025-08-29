@@ -1,36 +1,8 @@
-# Python cache files
 __pycache__/
 *.py[cod]
-*$py.class
-
-# Chrome profile directory for Selenium
-chrome-profile/
-
-# WebDriver executables
-driver/
-
-# SQLite database files
-solicitudes_prestamos.db
-*.db
-
-# Environment variables
-.env
-
-# IDE files
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# OS files
-.DS_Store
-Thumbs.db
-
-# Logs
 *.log
-logs/
-
-# Virtual environment
-venv/
-env/
-.venv/
+.env
+.env.*
+.envrc
+.DS_Store
+*.sqlite3

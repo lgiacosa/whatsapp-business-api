@@ -1,23 +1,37 @@
 from flask import Flask, request, jsonify
 import requests
 import json
+import os
 from datetime import datetime
 
 app = Flask(__name__)
 
-# Token de verificación para el webhook (usando el mismo token de acceso)
-VERIFY_TOKEN = "EAAHrpGZBTFTABPWTdO4ntNzYJ9ip6F9ZA4J8ZAjJyUX5XnbZA7PIuK27ALwZCcQF86STCHS9AD523eyWxaWj0pgLYldXD9SnNxszTSTqipeTnoKjvEIb8AWtiOanmLM9PAzgUUB1Lky7BEOmaxGiiUZBtUukDfTkfPKRv7N54JQaORsDPj3xkp83CPzUZCesLcXHZAOqCXxANb0GZB5UPbsFL78McZCBN3r21GDEtiggKBipEFiDJIWaZCTExwxOgZDZD"
+# Token de verificación para el webhook - DESDE VARIABLES DE ENTORNO
+VERIFY_TOKEN = os.environ.get('VERIFY_TOKEN')
 
-# Token de acceso real de WhatsApp Business API
-ACCESS_TOKEN = "EAAHrpGZBTFTABPWTdO4ntNzYJ9ip6F9ZA4J8ZAjJyUX5XnbZA7PIuK27ALwZCcQF86STCHS9AD523eyWxaWj0pgLYldXD9SnNxszTSTqipeTnoKjvEIb8AWtiOanmLM9PAzgUUB1Lky7BEOmaxGiiUZBtUukDfTkfPKRv7N54JQaORsDPj3xkp83CPzUZCesLcXHZAOqCXxANb0GZB5UPbsFL78McZCBN3r21GDEtiggKBipEFiDJIWaZCTExwxOgZDZD"
+# Token de acceso real de WhatsApp Business API - DESDE VARIABLES DE ENTORNO
+ACCESS_TOKEN = os.environ.get('ACCESS_TOKEN')
 
-# ID del número de teléfono de WhatsApp Business
-PHONE_NUMBER_ID = "629824623553106"
+# ID del número de teléfono de WhatsApp Business - DESDE VARIABLES DE ENTORNO
+PHONE_NUMBER_ID = os.environ.get('PHONE_NUMBER_ID', "629824623553106")
 
 # ID de la cuenta de WhatsApp Business  
 BUSINESS_ACCOUNT_ID = "715070248001249"
 
-# URL base de la API de WhatsApp Business
+# Validar que las variables de entorno estén configuradas
+if not ACCESS_TOKEN:
+    print("❌ ERROR: ACCESS_TOKEN no está configurado en las variables de entorno")
+    print("💡 Configura ACCESS_TOKEN en Render.com → Environment")
+    
+if not VERIFY_TOKEN:
+    print("❌ ERROR: VERIFY_TOKEN no está configurado en las variables de entorno")
+    print("💡 Configura VERIFY_TOKEN en Render.com → Environment")
+    
+if not PHONE_NUMBER_ID:
+    print("❌ ERROR: PHONE_NUMBER_ID no está configurado en las variables de entorno")
+    print("💡 Configura PHONE_NUMBER_ID en Render.com → Environment")
+
+# URL base de la API de WhatsApp Business (construida después de validar variables)
 WHATSAPP_API_URL = f"https://graph.facebook.com/v18.0/{PHONE_NUMBER_ID}/messages"
 
 @app.route("/webhook", methods=["GET", "POST"])
@@ -311,12 +325,32 @@ def test_send():
 
 if __name__ == "__main__":
     print("🚀 Iniciando servidor WhatsApp Business API")
+    print("="*50)
+    print("🔐 VALIDACIÓN DE SEGURIDAD:")
+    print(f"📱 Phone ID: {PHONE_NUMBER_ID}")
+    print(f"🔑 Access Token: {'✅ Configurado' if ACCESS_TOKEN and len(ACCESS_TOKEN) > 50 else '❌ Falta configurar'}")
+    print(f"🔐 Verify Token: {'✅ Configurado' if VERIFY_TOKEN and len(VERIFY_TOKEN) > 20 else '❌ Falta configurar'}")
+    print("="*50)
+    
+    if not ACCESS_TOKEN or not VERIFY_TOKEN:
+        print("❌ ADVERTENCIA: Variables de entorno faltantes!")
+        print("💡 Para usar en Render.com:")
+        print("   1. Ir a tu servicio en Render → Environment")
+        print("   2. Agregar ACCESS_TOKEN con tu token de Meta")
+        print("   3. Agregar VERIFY_TOKEN con tu token de verificación")
+        print("   4. Agregar PHONE_NUMBER_ID si es diferente al default")
+        print("="*50)
+    
     print(f"📱 Webhook URL: http://localhost:5000/webhook")
     print(f"💬 Send Message URL: http://localhost:5000/send-message")
-    print(f"🔑 Verify Token: {VERIFY_TOKEN[:20]}...")
     print("\n⚠️  IMPORTANTE:")
-    print("1. Configura PHONE_NUMBER_ID con tu ID real de WhatsApp Business")
-    print("2. Para producción, usa HTTPS (ngrok, servidor web, etc.)")
-    print("3. El ACCESS_TOKEN debe ser válido y tener permisos de WhatsApp Business")
+    print("1. Todas las credenciales se obtienen de variables de entorno")
+    print("2. Para producción, usa HTTPS (Render, Heroku, etc.)")
+    print("3. Nunca hardcodees tokens en el código")
     
-    app.run(port=5000, debug=True)
+    # Puerto desde variable de entorno (Render usa PORT)
+    port = int(os.environ.get('PORT', 5000))
+    debug = os.environ.get('FLASK_ENV') == 'development'
+    
+    print(f"🌐 Servidor iniciando en puerto {port}")
+    app.run(host='0.0.0.0', port=port, debug=debug)
