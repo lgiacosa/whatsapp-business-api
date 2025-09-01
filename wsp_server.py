@@ -670,7 +670,7 @@ def get_meta_templates():
 def send_otp():
     """
     Endpoint específico para enviar códigos OTP
-    Simplifica el envío de la plantilla OTP
+    Simplifica el envío de la plantilla OTP con manejo inteligente de parámetros
     """
     try:
         data = request.json
@@ -680,6 +680,7 @@ def send_otp():
         
         to = data.get("to")
         codigo = data.get("codigo")
+        url_parameter = data.get("url_parameter", "https://tu-app.com/verify")  # URL por defecto
         
         if not to:
             return jsonify({"error": "Campo 'to' (número de teléfono) requerido"}), 400
@@ -687,7 +688,9 @@ def send_otp():
         if not codigo:
             return jsonify({"error": "Campo 'codigo' (código OTP) requerido"}), 400
         
-        # Enviar plantilla OTP con el código como parámetro
+        # Intentar con diferentes configuraciones de parámetros
+        # 1. Solo código (plantilla simple)
+        print(f"🔄 Intentando envío OTP simple: código={codigo}")
         result = send_template(to, "otp", "es", [codigo])
         
         if result.get("success"):
@@ -696,19 +699,125 @@ def send_otp():
                 "message": "Código OTP enviado correctamente",
                 "message_id": result.get("message_id"),
                 "to": to,
-                "codigo": codigo
+                "codigo": codigo,
+                "method": "simple"
             }), 200
-        else:
+        
+        # 2. Si falla, intentar con código + URL (plantilla con botón)
+        print(f"🔄 Intentando envío OTP con botón: código={codigo}, url={url_parameter}")
+        result = send_template(to, "otp", "es", [codigo, url_parameter])
+        
+        if result.get("success"):
             return jsonify({
-                "success": False,
-                "error": result.get("error"),
-                "details": result.get("details")
-            }), 400
+                "success": True,
+                "message": "Código OTP enviado correctamente (con botón)",
+                "message_id": result.get("message_id"),
+                "to": to,
+                "codigo": codigo,
+                "url_parameter": url_parameter,
+                "method": "with_button"
+            }), 200
+        
+        # 3. Si ambos fallan, devolver error detallado
+        return jsonify({
+            "success": False,
+            "error": "No se pudo enviar el OTP con ninguna configuración",
+            "details": result.get("details"),
+            "suggestions": [
+                "Verifica que la plantilla 'otp' esté aprobada en Meta",
+                "Revisa la estructura de la plantilla en Meta Business Manager",
+                "Asegúrate de que el número esté en formato internacional (+país + número)"
+            ]
+        }), 400
             
     except Exception as e:
         return jsonify({
             "success": False,
             "error": "Error interno del servidor",
+            "details": str(e)
+        }), 500
+
+@app.route("/template-info/<template_name>", methods=["GET"])
+def get_template_info(template_name):
+    """
+    Endpoint para obtener información detallada de una plantilla específica
+    """
+    try:
+        headers = {
+            "Authorization": f"Bearer {ACCESS_TOKEN}",
+            "Content-Type": "application/json"
+        }
+        
+        # Consultar plantilla específica de Meta
+        meta_url = f"https://graph.facebook.com/v18.0/{BUSINESS_ACCOUNT_ID}/message_templates"
+        params = {"name": template_name}
+        response = requests.get(meta_url, headers=headers, params=params)
+        
+        if response.status_code == 200:
+            data = response.json()
+            templates = data.get("data", [])
+            
+            if templates:
+                template = templates[0]  # Tomar la primera coincidencia
+                
+                # Analizar componentes
+                components_info = []
+                components = template.get("components", [])
+                
+                for comp in components:
+                    comp_type = comp.get("type")
+                    comp_info = {"type": comp_type}
+                    
+                    if comp_type == "BODY":
+                        # Contar parámetros en el texto
+                        text = comp.get("text", "")
+                        param_count = text.count("{{") 
+                        comp_info["parameters_needed"] = param_count
+                        comp_info["text"] = text
+                    
+                    elif comp_type == "BUTTONS":
+                        buttons = comp.get("buttons", [])
+                        comp_info["buttons"] = []
+                        for btn in buttons:
+                            btn_info = {
+                                "type": btn.get("type"),
+                                "text": btn.get("text")
+                            }
+                            if btn.get("type") == "URL":
+                                btn_info["url"] = btn.get("url")
+                                # Contar parámetros en la URL
+                                url_params = btn.get("url", "").count("{{")
+                                btn_info["parameters_needed"] = url_params
+                            comp_info["buttons"].append(btn_info)
+                    
+                    components_info.append(comp_info)
+                
+                return jsonify({
+                    "template_name": template_name,
+                    "status": template.get("status"),
+                    "language": template.get("language"),
+                    "components": components_info,
+                    "usage_tips": {
+                        "body_parameters": sum(c.get("parameters_needed", 0) for c in components_info if c["type"] == "BODY"),
+                        "button_parameters": sum(len(c.get("buttons", [])) for c in components_info if c["type"] == "BUTTONS"),
+                        "total_parameters_needed": sum(c.get("parameters_needed", 0) for c in components_info)
+                    }
+                })
+            else:
+                return jsonify({
+                    "error": f"Plantilla '{template_name}' no encontrada",
+                    "available_templates": [t.get("name") for t in data.get("data", [])]
+                }), 404
+        
+        else:
+            return jsonify({
+                "error": f"Error consultando Meta API: {response.status_code}",
+                "details": response.text
+            }), response.status_code
+            
+    except Exception as e:
+        return jsonify({
+            "error": "Error consultando información de plantilla",
             "details": str(e)
         }), 500
 
