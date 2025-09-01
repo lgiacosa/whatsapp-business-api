@@ -406,12 +406,16 @@ def test_config():
         "debug": {
             "env_vars": {
                 "ACCESS_TOKEN_length": len(access_token_env),
+                "ACCESS_TOKEN_start": access_token_env[:20] if access_token_env else "EMPTY",  # Para debugging
+                "ACCESS_TOKEN_end": access_token_env[-10:] if access_token_env else "EMPTY",  # Para debugging
                 "VERIFY_TOKEN_length": len(verify_token_env),
                 "PHONE_NUMBER_ID_length": len(phone_id_env),
                 "PHONE_NUMBER_ID_value": phone_id_env  # Para debugging
             },
             "global_vars": {
                 "ACCESS_TOKEN_length": len(ACCESS_TOKEN) if ACCESS_TOKEN else 0,
+                "ACCESS_TOKEN_start": ACCESS_TOKEN[:20] if ACCESS_TOKEN else "EMPTY",  # Para debugging
+                "ACCESS_TOKEN_end": ACCESS_TOKEN[-10:] if ACCESS_TOKEN else "EMPTY",  # Para debugging
                 "VERIFY_TOKEN_length": len(VERIFY_TOKEN) if VERIFY_TOKEN else 0,
                 "PHONE_NUMBER_ID_length": len(PHONE_NUMBER_ID) if PHONE_NUMBER_ID else 0,
                 "PHONE_NUMBER_ID_value": PHONE_NUMBER_ID  # Para debugging
