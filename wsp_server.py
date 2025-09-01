@@ -648,6 +648,125 @@ def send_otp():
             "details": str(e)
         }), 500
 
+@app.route("/debug-otp", methods=["GET"])
+def debug_otp():
+    """
+    Endpoint para diagnosticar la estructura de la plantilla OTP
+    """
+    try:
+        headers = {
+            "Authorization": f"Bearer {ACCESS_TOKEN}",
+            "Content-Type": "application/json"
+        }
+        
+        # Consultar la plantilla OTP específicamente
+        meta_url = f"https://graph.facebook.com/v18.0/{BUSINESS_ACCOUNT_ID}/message_templates"
+        params = {"name": "otp"}
+        
+        response = requests.get(meta_url, headers=headers, params=params)
+        
+        if response.status_code == 200:
+            data = response.json()
+            templates = data.get("data", [])
+            
+            if templates:
+                template = templates[0]
+                components = template.get("components", [])
+                
+                # Analizar cada componente
+                analysis = {
+                    "template_name": template.get("name"),
+                    "status": template.get("status"),
+                    "language": template.get("language"),
+                    "components_analysis": []
+                }
+                
+                for comp in components:
+                    comp_analysis = {
+                        "type": comp.get("type"),
+                        "details": {}
+                    }
+                    
+                    if comp.get("type") == "BODY":
+                        text = comp.get("text", "")
+                        param_count = text.count("{{")
+                        comp_analysis["details"] = {
+                            "text": text,
+                            "parameters_needed": param_count
+                        }
+                    
+                    elif comp.get("type") == "BUTTONS":
+                        buttons = comp.get("buttons", [])
+                        buttons_info = []
+                        
+                        for i, btn in enumerate(buttons):
+                            btn_info = {
+                                "index": i,
+                                "type": btn.get("type"),
+                                "text": btn.get("text")
+                            }
+                            
+                            if btn.get("type") == "URL":
+                                url = btn.get("url", "")
+                                btn_info["url"] = url
+                                btn_info["url_parameters_needed"] = url.count("{{")
+                            
+                            buttons_info.append(btn_info)
+                        
+                        comp_analysis["details"]["buttons"] = buttons_info
+                    
+                    analysis["components_analysis"].append(comp_analysis)
+                
+                # Calcular total de parámetros necesarios
+                total_params = 0
+                param_suggestions = []
+                
+                for comp in analysis["components_analysis"]:
+                    if comp["type"] == "BODY":
+                        body_params = comp["details"].get("parameters_needed", 0)
+                        total_params += body_params
+                        if body_params > 0:
+                            param_suggestions.append(f"Parámetro {total_params}: Código OTP (ej: '123456')")
+                    
+                    elif comp["type"] == "BUTTONS":
+                        for btn in comp["details"].get("buttons", []):
+                            if btn.get("url_parameters_needed", 0) > 0:
+                                total_params += btn["url_parameters_needed"]
+                                param_suggestions.append(f"Parámetro {total_params}: URL dinámica para botón (ej: 'https://mi-app.com/verify?code=123456')")
+                
+                analysis["total_parameters_needed"] = total_params
+                analysis["parameter_suggestions"] = param_suggestions
+                analysis["usage_example"] = {
+                    "endpoint": "/send-otp",
+                    "payload": {
+                        "to": "+5493425211865",
+                        "codigo": "123456"
+                    }
+                }
+                
+                if total_params > 1:
+                    analysis["usage_example"]["payload"]["url_parameter"] = "https://mi-app.com/verify"
+                
+                return jsonify(analysis)
+            
+            else:
+                return jsonify({
+                    "error": "Plantilla 'otp' no encontrada",
+                    "available_templates": [t.get("name") for t in data.get("data", [])]
+                }), 404
+        
+        else:
+            return jsonify({
+                "error": f"Error consultando Meta: {response.status_code}",
+                "details": response.text
+            }), response.status_code
+    
+    except Exception as e:
+        return jsonify({
+            "error": "Error en diagnóstico",
+            "details": str(e)
+        }), 500
+
 if __name__ == "__main__":
     print("🚀 WhatsApp Business API Server")
     print("="*50)
