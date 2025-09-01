@@ -443,120 +443,56 @@ def test_send():
 @app.route("/templates", methods=["GET"])
 def get_templates():
     """
-    Endpoint para obtener las plantillas disponibles (consulta Meta en tiempo real)
+    Endpoint para obtener las plantillas disponibles
     """
-    try:
-        # Consultar plantillas reales de Meta
-        headers = {
-            "Authorization": f"Bearer {ACCESS_TOKEN}",
-            "Content-Type": "application/json"
+    templates = [
+        {
+            "name": "hello_world",
+            "display_name": "Hello World",
+            "description": "Plantilla de saludo básica (en inglés)",
+            "language": "en_US",
+            "parameters": [],
+            "example": "Welcome and congratulations!! This message demonstrates your ability to send a WhatsApp message notification from the Cloud API, hosted by Meta."
+        },
+        {
+            "name": "otp",
+            "display_name": "Código OTP",
+            "description": "Código de verificación de un solo uso",
+            "language": "es",
+            "parameters": ["codigo_otp"],
+            "example": "Tu código de verificación es: 123456"
+        },
+        {
+            "name": "tarjeta_credito",
+            "display_name": "Recordatorio Tarjeta de Crédito",
+            "description": "Recordatorio de pago de tarjeta",
+            "language": "es",
+            "parameters": ["nombre_tarjeta", "ultimos_digitos", "fecha_vencimiento"],
+            "example": "Recordatorio: El pago de tu tarjeta CS Mutual Credit Plus que termina en 1234 está programado para el 22 de marzo de 2024. Gracias."
+        },
+        {
+            "name": "otp_transacciones",
+            "display_name": "Código OTP para Transacciones",
+            "description": "Envío de código de verificación para transacciones",
+            "language": "es",
+            "parameters": ["codigo_otp"],
+            "example": "Use el código *123456* para autorizar su transacción. Por tu seguridad, no compartas este código."
         }
-        
-        meta_url = f"https://graph.facebook.com/v18.0/{BUSINESS_ACCOUNT_ID}/message_templates"
-        response = requests.get(meta_url, headers=headers)
-        
-        # Información local de plantillas conocidas
-        template_info = {
-            "hello_world": {
-                "display_name": "Hello World",
-                "description": "Plantilla de saludo básica (en inglés)",
-                "parameters": [],
-                "example": "Welcome and congratulations!! This message demonstrates your ability to send a WhatsApp message notification from the Cloud API, hosted by Meta."
-            },
-            "otp": {
-                "display_name": "Código OTP",
-                "description": "Código de verificación de un solo uso",
-                "parameters": ["codigo"],
-                "example": "Tu código de verificación es: {{1}}. No compartas este código con nadie."
-            },
-            "tarjeta_credito": {
-                "display_name": "Recordatorio Tarjeta de Crédito",
-                "description": "Recordatorio de pago de tarjeta",
-                "parameters": ["nombre_tarjeta", "ultimos_digitos", "fecha_vencimiento"],
-                "example": "Recordatorio: El pago de tu tarjeta {{1}} que termina en {{2}} está programado para el {{3}}. Gracias."
-            },
-            "otp_transacciones": {
-                "display_name": "Código OTP para Transacciones",
-                "description": "Envío de código de verificación para transacciones",
-                "parameters": ["codigo_otp"],
-                "example": "Use el código *{{1}}* para autorizar su transacción. Por tu seguridad, no compartas este código."
-            }
-        }
-        
-        if response.status_code == 200:
-            meta_data = response.json()
-            templates = []
-            
-            # Procesar plantillas de Meta
-            for template in meta_data.get("data", []):
-                name = template.get("name")
-                language = template.get("language")
-                status = template.get("status")
-                
-                # Solo incluir plantillas aprobadas
-                if status == "APPROVED":
-                    # Combinar con información local si existe
-                    local_info = template_info.get(name, {
-                        "display_name": name.replace("_", " ").title(),
-                        "description": f"Plantilla {name}",
-                        "parameters": ["param1"],  # Por defecto
-                        "example": f"Plantilla {name} con parámetros"
-                    })
-                    
-                    templates.append({
-                        "name": name,
-                        "display_name": local_info["display_name"],
-                        "description": local_info["description"],
-                        "language": language,
-                        "status": status,
-                        "parameters": local_info["parameters"],
-                        "example": local_info["example"]
-                    })
-            
-            return jsonify({
-                "templates": templates,
-                "count": len(templates),
-                "source": "Meta Business API (tiempo real)"
-            })
-        else:
-            # Si falla la consulta a Meta, usar lista local como fallback
-            fallback_templates = [
-                {
-                    "name": "otp",
-                    "display_name": "Código OTP",
-                    "description": "Código de verificación de un solo uso",
-                    "language": "es",
-                    "status": "LOCAL_FALLBACK",
-                    "parameters": ["codigo"],
-                    "example": "Tu código de verificación es: {{1}}. No compartas este código con nadie."
-                }
-            ]
-            
-            return jsonify({
-                "templates": fallback_templates,
-                "count": len(fallback_templates),
-                "source": "Fallback local (Meta no disponible)",
-                "meta_error": f"Error {response.status_code}: {response.text}"
-            })
-            
-    except Exception as e:
-        # Fallback en caso de error
-        return jsonify({
-            "templates": [
-                {
-                    "name": "otp",
-                    "display_name": "Código OTP",
-                    "description": "Código de verificación de un solo uso",
-                    "language": "es",
-                    "status": "LOCAL_FALLBACK",
-                    "parameters": ["codigo"],
-                    "example": "Tu código de verificación es: {{1}}. No compartas este código con nadie."
-                }
-            ],
-            "count": 1,
-            "source": "Fallback local (error de conexión)",
-            "error": str(e)
-        })
+        # otp_transacciones comentada hasta que sea aprobada por Meta
+        # {
+        #     "name": "otp_transacciones",
+        #     "display_name": "Código OTP para Transacciones",
+        #     "description": "Envío de código de verificación para transacciones (PENDIENTE APROBACIÓN)",
+        #     "language": "es",
+        #     "parameters": ["codigo_otp", "url_parameter"],
+        #     "example": "Tu código de verificación es: 123456. Úsalo para autorizar la transacción. No compartas este código."
+        # }
+    ]
+    
+    return jsonify({
+        "templates": templates,
+        "count": len(templates)
+    })
 
 @app.route("/send-template", methods=["POST"])
 def send_template_endpoint():
@@ -670,7 +606,7 @@ def get_meta_templates():
 def send_otp():
     """
     Endpoint específico para enviar códigos OTP
-    Simplifica el envío de la plantilla OTP con manejo inteligente de parámetros
+    Simplifica el envío de la plantilla OTP
     """
     try:
         data = request.json
@@ -680,7 +616,6 @@ def send_otp():
         
         to = data.get("to")
         codigo = data.get("codigo")
-        url_parameter = data.get("url_parameter", "https://tu-app.com/verify")  # URL por defecto
         
         if not to:
             return jsonify({"error": "Campo 'to' (número de teléfono) requerido"}), 400
@@ -688,9 +623,7 @@ def send_otp():
         if not codigo:
             return jsonify({"error": "Campo 'codigo' (código OTP) requerido"}), 400
         
-        # Intentar con diferentes configuraciones de parámetros
-        # 1. Solo código (plantilla simple)
-        print(f"🔄 Intentando envío OTP simple: código={codigo}")
+        # Enviar plantilla OTP con el código como parámetro
         result = send_template(to, "otp", "es", [codigo])
         
         if result.get("success"):
@@ -699,125 +632,19 @@ def send_otp():
                 "message": "Código OTP enviado correctamente",
                 "message_id": result.get("message_id"),
                 "to": to,
-                "codigo": codigo,
-                "method": "simple"
+                "codigo": codigo
             }), 200
-        
-        # 2. Si falla, intentar con código + URL (plantilla con botón)
-        print(f"🔄 Intentando envío OTP con botón: código={codigo}, url={url_parameter}")
-        result = send_template(to, "otp", "es", [codigo, url_parameter])
-        
-        if result.get("success"):
+        else:
             return jsonify({
-                "success": True,
-                "message": "Código OTP enviado correctamente (con botón)",
-                "message_id": result.get("message_id"),
-                "to": to,
-                "codigo": codigo,
-                "url_parameter": url_parameter,
-                "method": "with_button"
-            }), 200
-        
-        # 3. Si ambos fallan, devolver error detallado
-        return jsonify({
-            "success": False,
-            "error": "No se pudo enviar el OTP con ninguna configuración",
-            "details": result.get("details"),
-            "suggestions": [
-                "Verifica que la plantilla 'otp' esté aprobada en Meta",
-                "Revisa la estructura de la plantilla en Meta Business Manager",
-                "Asegúrate de que el número esté en formato internacional (+país + número)"
-            ]
-        }), 400
+                "success": False,
+                "error": result.get("error"),
+                "details": result.get("details")
+            }), 400
             
     except Exception as e:
         return jsonify({
             "success": False,
             "error": "Error interno del servidor",
-            "details": str(e)
-        }), 500
-
-@app.route("/template-info/<template_name>", methods=["GET"])
-def get_template_info(template_name):
-    """
-    Endpoint para obtener información detallada de una plantilla específica
-    """
-    try:
-        headers = {
-            "Authorization": f"Bearer {ACCESS_TOKEN}",
-            "Content-Type": "application/json"
-        }
-        
-        # Consultar plantilla específica de Meta
-        meta_url = f"https://graph.facebook.com/v18.0/{BUSINESS_ACCOUNT_ID}/message_templates"
-        params = {"name": template_name}
-        response = requests.get(meta_url, headers=headers, params=params)
-        
-        if response.status_code == 200:
-            data = response.json()
-            templates = data.get("data", [])
-            
-            if templates:
-                template = templates[0]  # Tomar la primera coincidencia
-                
-                # Analizar componentes
-                components_info = []
-                components = template.get("components", [])
-                
-                for comp in components:
-                    comp_type = comp.get("type")
-                    comp_info = {"type": comp_type}
-                    
-                    if comp_type == "BODY":
-                        # Contar parámetros en el texto
-                        text = comp.get("text", "")
-                        param_count = text.count("{{") 
-                        comp_info["parameters_needed"] = param_count
-                        comp_info["text"] = text
-                    
-                    elif comp_type == "BUTTONS":
-                        buttons = comp.get("buttons", [])
-                        comp_info["buttons"] = []
-                        for btn in buttons:
-                            btn_info = {
-                                "type": btn.get("type"),
-                                "text": btn.get("text")
-                            }
-                            if btn.get("type") == "URL":
-                                btn_info["url"] = btn.get("url")
-                                # Contar parámetros en la URL
-                                url_params = btn.get("url", "").count("{{")
-                                btn_info["parameters_needed"] = url_params
-                            comp_info["buttons"].append(btn_info)
-                    
-                    components_info.append(comp_info)
-                
-                return jsonify({
-                    "template_name": template_name,
-                    "status": template.get("status"),
-                    "language": template.get("language"),
-                    "components": components_info,
-                    "usage_tips": {
-                        "body_parameters": sum(c.get("parameters_needed", 0) for c in components_info if c["type"] == "BODY"),
-                        "button_parameters": sum(len(c.get("buttons", [])) for c in components_info if c["type"] == "BUTTONS"),
-                        "total_parameters_needed": sum(c.get("parameters_needed", 0) for c in components_info)
-                    }
-                })
-            else:
-                return jsonify({
-                    "error": f"Plantilla '{template_name}' no encontrada",
-                    "available_templates": [t.get("name") for t in data.get("data", [])]
-                }), 404
-        
-        else:
-            return jsonify({
-                "error": f"Error consultando Meta API: {response.status_code}",
-                "details": response.text
-            }), response.status_code
-            
-    except Exception as e:
-        return jsonify({
-            "error": "Error consultando información de plantilla",
             "details": str(e)
         }), 500
 
