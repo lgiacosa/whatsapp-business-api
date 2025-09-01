@@ -602,6 +602,52 @@ def get_meta_templates():
             "details": str(e)
         }), 500
 
+@app.route("/send-otp", methods=["POST"])
+def send_otp():
+    """
+    Endpoint específico para enviar códigos OTP
+    Simplifica el envío de la plantilla OTP
+    """
+    try:
+        data = request.json
+        
+        if not data:
+            return jsonify({"error": "No se proporcionó data JSON"}), 400
+        
+        to = data.get("to")
+        codigo = data.get("codigo")
+        
+        if not to:
+            return jsonify({"error": "Campo 'to' (número de teléfono) requerido"}), 400
+        
+        if not codigo:
+            return jsonify({"error": "Campo 'codigo' (código OTP) requerido"}), 400
+        
+        # Enviar plantilla OTP con el código como parámetro
+        result = send_template(to, "otp", "es", [codigo])
+        
+        if result.get("success"):
+            return jsonify({
+                "success": True,
+                "message": "Código OTP enviado correctamente",
+                "message_id": result.get("message_id"),
+                "to": to,
+                "codigo": codigo
+            }), 200
+        else:
+            return jsonify({
+                "success": False,
+                "error": result.get("error"),
+                "details": result.get("details")
+            }), 400
+            
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": "Error interno del servidor",
+            "details": str(e)
+        }), 500
+
 if __name__ == "__main__":
     print("🚀 WhatsApp Business API Server")
     print("="*50)
