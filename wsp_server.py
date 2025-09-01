@@ -443,56 +443,120 @@ def test_send():
 @app.route("/templates", methods=["GET"])
 def get_templates():
     """
-    Endpoint para obtener las plantillas disponibles
+    Endpoint para obtener las plantillas disponibles (consulta Meta en tiempo real)
     """
-    templates = [
-        {
-            "name": "hello_world",
-            "display_name": "Hello World",
-            "description": "Plantilla de saludo básica (en inglés)",
-            "language": "en_US",
-            "parameters": [],
-            "example": "Welcome and congratulations!! This message demonstrates your ability to send a WhatsApp message notification from the Cloud API, hosted by Meta."
-        },
-        {
-            "name": "otp",
-            "display_name": "Código OTP",
-            "description": "Código de verificación de un solo uso",
-            "language": "es",
-            "parameters": ["codigo_otp"],
-            "example": "Tu código de verificación es: 123456"
-        },
-        {
-            "name": "tarjeta_credito",
-            "display_name": "Recordatorio Tarjeta de Crédito",
-            "description": "Recordatorio de pago de tarjeta",
-            "language": "es",
-            "parameters": ["nombre_tarjeta", "ultimos_digitos", "fecha_vencimiento"],
-            "example": "Recordatorio: El pago de tu tarjeta CS Mutual Credit Plus que termina en 1234 está programado para el 22 de marzo de 2024. Gracias."
-        },
-        {
-            "name": "otp_transacciones",
-            "display_name": "Código OTP para Transacciones",
-            "description": "Envío de código de verificación para transacciones",
-            "language": "es",
-            "parameters": ["codigo_otp"],
-            "example": "Use el código *123456* para autorizar su transacción. Por tu seguridad, no compartas este código."
+    try:
+        # Consultar plantillas reales de Meta
+        headers = {
+            "Authorization": f"Bearer {ACCESS_TOKEN}",
+            "Content-Type": "application/json"
         }
-        # otp_transacciones comentada hasta que sea aprobada por Meta
-        # {
-        #     "name": "otp_transacciones",
-        #     "display_name": "Código OTP para Transacciones",
-        #     "description": "Envío de código de verificación para transacciones (PENDIENTE APROBACIÓN)",
-        #     "language": "es",
-        #     "parameters": ["codigo_otp", "url_parameter"],
-        #     "example": "Tu código de verificación es: 123456. Úsalo para autorizar la transacción. No compartas este código."
-        # }
-    ]
-    
-    return jsonify({
-        "templates": templates,
-        "count": len(templates)
-    })
+        
+        meta_url = f"https://graph.facebook.com/v18.0/{BUSINESS_ACCOUNT_ID}/message_templates"
+        response = requests.get(meta_url, headers=headers)
+        
+        # Información local de plantillas conocidas
+        template_info = {
+            "hello_world": {
+                "display_name": "Hello World",
+                "description": "Plantilla de saludo básica (en inglés)",
+                "parameters": [],
+                "example": "Welcome and congratulations!! This message demonstrates your ability to send a WhatsApp message notification from the Cloud API, hosted by Meta."
+            },
+            "otp": {
+                "display_name": "Código OTP",
+                "description": "Código de verificación de un solo uso",
+                "parameters": ["codigo"],
+                "example": "Tu código de verificación es: {{1}}. No compartas este código con nadie."
+            },
+            "tarjeta_credito": {
+                "display_name": "Recordatorio Tarjeta de Crédito",
+                "description": "Recordatorio de pago de tarjeta",
+                "parameters": ["nombre_tarjeta", "ultimos_digitos", "fecha_vencimiento"],
+                "example": "Recordatorio: El pago de tu tarjeta {{1}} que termina en {{2}} está programado para el {{3}}. Gracias."
+            },
+            "otp_transacciones": {
+                "display_name": "Código OTP para Transacciones",
+                "description": "Envío de código de verificación para transacciones",
+                "parameters": ["codigo_otp"],
+                "example": "Use el código *{{1}}* para autorizar su transacción. Por tu seguridad, no compartas este código."
+            }
+        }
+        
+        if response.status_code == 200:
+            meta_data = response.json()
+            templates = []
+            
+            # Procesar plantillas de Meta
+            for template in meta_data.get("data", []):
+                name = template.get("name")
+                language = template.get("language")
+                status = template.get("status")
+                
+                # Solo incluir plantillas aprobadas
+                if status == "APPROVED":
+                    # Combinar con información local si existe
+                    local_info = template_info.get(name, {
+                        "display_name": name.replace("_", " ").title(),
+                        "description": f"Plantilla {name}",
+                        "parameters": ["param1"],  # Por defecto
+                        "example": f"Plantilla {name} con parámetros"
+                    })
+                    
+                    templates.append({
+                        "name": name,
+                        "display_name": local_info["display_name"],
+                        "description": local_info["description"],
+                        "language": language,
+                        "status": status,
+                        "parameters": local_info["parameters"],
+                        "example": local_info["example"]
+                    })
+            
+            return jsonify({
+                "templates": templates,
+                "count": len(templates),
+                "source": "Meta Business API (tiempo real)"
+            })
+        else:
+            # Si falla la consulta a Meta, usar lista local como fallback
+            fallback_templates = [
+                {
+                    "name": "otp",
+                    "display_name": "Código OTP",
+                    "description": "Código de verificación de un solo uso",
+                    "language": "es",
+                    "status": "LOCAL_FALLBACK",
+                    "parameters": ["codigo"],
+                    "example": "Tu código de verificación es: {{1}}. No compartas este código con nadie."
+                }
+            ]
+            
+            return jsonify({
+                "templates": fallback_templates,
+                "count": len(fallback_templates),
+                "source": "Fallback local (Meta no disponible)",
+                "meta_error": f"Error {response.status_code}: {response.text}"
+            })
+            
+    except Exception as e:
+        # Fallback en caso de error
+        return jsonify({
+            "templates": [
+                {
+                    "name": "otp",
+                    "display_name": "Código OTP",
+                    "description": "Código de verificación de un solo uso",
+                    "language": "es",
+                    "status": "LOCAL_FALLBACK",
+                    "parameters": ["codigo"],
+                    "example": "Tu código de verificación es: {{1}}. No compartas este código con nadie."
+                }
+            ],
+            "count": 1,
+            "source": "Fallback local (error de conexión)",
+            "error": str(e)
+        })
 
 @app.route("/send-template", methods=["POST"])
 def send_template_endpoint():
